@@ -163,7 +163,7 @@ class Verx {
 
             // in the index array we pushed file path and file hash
             const fileContent = await this.getFileContent(file.hash);
-            console.log(fileContent);
+            // console.log(fileContent);
 
             /*
             New commit has this file and we printed the content of this file. 
@@ -183,17 +183,21 @@ class Verx {
                  if(parentFileContent !== undefined){
                     console.log('\nDiff : ');
                     const diff = diffLines(parentFileContent , fileContent);
-                   // console.log(diff);
-
+                    
                     diff.forEach(part =>{
-                        if(part.added){
-                            process.stdout.write(chalk.green(part.value));
-                        }else if(part.removed){
-                            process.stdout.write(chalk.red(part.value));
-                        }else{
-                            process.stdout.write(chalk.grey(part.value));
-
-                        }
+                        const lines = part.value.split('\n');
+                        lines.forEach((line, index) => {
+                            // Skip empty last line from split
+                            if (index === lines.length - 1 && line === '') return;
+                            
+                            if(part.added){
+                                console.log(chalk.green.bold('+ ' + line));
+                            }else if(part.removed){
+                                console.log(chalk.red.bold('- ' + line));
+                            }else{
+                                console.log(chalk.dim('  ' + line));
+                            }
+                        });
                     });
                     console.log(); // new line
 
@@ -244,11 +248,11 @@ class Verx {
 (async () =>{
     const verx = new Verx();
      await verx.init(); 
-    //  await verx.add('sample.txt');
-    //  await verx.add('sample2.txt');
-    //  await verx.add('sample3.txt');
-    //  await verx.commit(`Fifth commit`);
-    //  await verx.log();
+//   await verx.add('sample.txt');
+//   await verx.add('sample2.txt');
+//   await verx.add('sample3.txt');
 
-   await verx.showCommitDiff('1dbf9d02db829a577ef19ef146f28b5bf1b59733');
+// await verx.commit(`Modified each and every sample.txt`);
+// await verx.log();  // Copy the new commit hash
+  await verx.showCommitDiff('66b969000ebff3f3b291a80682094b86843e8829');
 })() ;
