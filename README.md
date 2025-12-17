@@ -4,7 +4,6 @@
 
 [![Node.js](https://img.shields.io/badge/Node.js-16+-339933?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=flat&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Overview
 
@@ -250,14 +249,7 @@ Human-readable format facilitates debugging and educational understanding. Produ
 **No Branching (Yet)**  
 The current implementation maintains a linear history to focus on core VCS concepts. Branch support is a planned enhancement.
 
-## Roadmap
 
-- [ ] Implement diff functionality for commit comparison
-- [ ] Add branch and merge support
-- [ ] Implement `.verxignore` for excluding files
-- [ ] Add remote repository support
-- [ ] Optimize object storage with packfiles
-- [ ] Implement garbage collection for orphaned objects
 
 ## Performance Characteristics
 

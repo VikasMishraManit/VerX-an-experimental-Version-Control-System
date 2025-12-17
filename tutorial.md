@@ -305,4 +305,123 @@ Commit Successfully created c49fe2c0cc7c338f596eaacf64c513177d20c2fe
 
 
 ## New Section : Adding the diff
-54:40
+
+1) Install chalk for coloring the output
+```
+npm install chalk
+```
+
+2) Make a function to get commit data from hash
+```
+ async getCommitData(commitHash){
+        const commitPath = path.join(this.objectPath, commitHash);
+       try {
+          return await fs.readFile(commitPath, { encoding: 'utf-8' });
+       } catch (error) {
+        console.log(`Failed to read the commit data` , error);
+        return null;
+       }
+    }
+```
+
+3) To read the content of the file
+```
+ async getFileContent(fileHash){
+        const filePath = path.join(this.objectPath,fileHash);
+        return fs.readFile(filePath , {encoding:'utf8'});
+    }
+```    
+
+4) Now the diff function
+```
+async showCommitDiff(commitHash){
+        // we are having commitHash get the commit data from this hash
+        const commitData = JSON.parse(await this.getCommitData(commitHash));
+        if(!commitData){
+            console.log(`Commit not found`);
+            return;
+        }
+
+        console.log(`Changes in the last commit are :`);
+
+        // a single commit can have many files
+        for(const file of commitData.files){
+            console.log(`Files is : ${file.path}`);
+
+            // in the index array we pushed file path and file hash
+            const fileContent = await this.getFileContent(file.hash);
+            console.log(fileContent);
+
+            /*
+            New commit has this file and we printed the content of this file. 
+            Now we will check if the parent commit is also having this file. 
+            If yes then this means that the content of this file has got changed. 
+            */
+
+
+            // now let us see what was present inside this file in the parent commit 
+            if(commitData.parent){
+                // to get parentCommit data pass the parent hash = commitData.parent
+                const parentCommitData = JSON.parse(await this.getCommitData(commitData.parent));
+                const parentFileContent = await this.getParentFileContent(parentCommitData , file.path);
+
+                // now use the chalk and see the difference between fileContent and parentFileContent
+                // to do this we will use the npm diff package 
+                 if(parentFileContent !== undefined){
+                    console.log('\nDiff : ');
+                    const diff = diffLines(parentFileContent , fileContent);
+                   // console.log(diff);
+
+                    diff.forEach(part =>{
+                        if(part.added){
+                            process.stdout.write(chalk.green(part.value));
+                        }else if(part.removed){
+                            process.stdout.write(chalk.red(part.value));
+                        }else{
+                            process.stdout.write(chalk.grey(part.value));
+
+                        }
+                    });
+                    console.log(); // new line
+
+                 }
+                 else {
+                    console.log(`New file in this commit `);
+                 }
+
+                }
+                else{
+                    console.log(`First Commit`);
+                }
+
+            }
+        }
+
+    
+
+    async getParentFileContent(parentCommitData , filePath){
+        const parentFile = parentCommitData.files.find(file => file.path === filePath) 
+        // if that file is present in the parentCommit 
+        // which means same file is in parentCommit and the new Commit also
+        // which indicates that the content of this file has got changed 
+         if(parentFile){
+            return await this.getFileContent(parentFile.hash);
+         }
+    }
+   
+  
+    async getCommitData(fileHash){
+        const commitPath = path.join(this.objectPath , fileHash);
+        try {
+            return await fs.readFile(commitPath , {encoding:'utf-8'});
+        } catch (error) {
+            console.log(`Failed to read the commit data`, error);
+            return null;
+        }
+    }
+
+    async getFileContent(fileHash){
+        const filePath = path.join(this.objectPath,fileHash);
+        return fs.readFile(filePath , {encoding:'utf8'});
+    }
+```

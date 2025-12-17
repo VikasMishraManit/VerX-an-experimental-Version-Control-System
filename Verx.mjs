@@ -1,7 +1,9 @@
 import path from 'path';
 import fs from 'fs/promises'
-import crypto, { hash } from 'crypto';
-import { timeStamp } from 'console';
+import crypto from 'crypto';
+import {diffLines} from 'diff';
+import chalk from 'chalk'; // ADD THIS IMPORT
+
 
 class Verx {
 
@@ -49,7 +51,7 @@ class Verx {
 
         // Now add the fileHash in the .verx folder
         const newFileHashedObjectPath = path.join(this.objectPath , fileHash);
-        // write the file data to the new path
+        // write the file data to the new path(which is inside the objects folder)
         await fs.writeFile(newFileHashedObjectPath , fileData);
 
         // Add the file in the staging area
@@ -78,6 +80,7 @@ class Verx {
         // read the satging area data
         const index = JSON.parse(await fs.readFile(this.indexPath , {encoding: 'utf-8'}));
         // extract the last commit
+        // head stores the commitHash , so parentCommit is the last commit hash stored in head
         const parentCommit = await this.getCurrentHead();
 
         // a commit is having a lot of data , so we are going to make a object to store all of this 
@@ -106,7 +109,8 @@ class Verx {
         console.log(`Commit Successfully created ${commitHash}`);
     }
 
-
+   // parent commit hash
+   // the commit hash stored in head file
     async getCurrentHead(){
         try {
             return await fs.readFile(this.headPath , {encoding:'utf-8'});
@@ -140,14 +144,111 @@ class Verx {
     }
 
 
+    // function to show the commit diff with its parent
+
+
+    async showCommitDiff(commitHash){
+        // we are having commitHash get the commit data from this hash
+        const commitData = JSON.parse(await this.getCommitData(commitHash));
+        if(!commitData){
+            console.log(`Commit not found`);
+            return;
+        }
+
+        console.log(`Changes in the last commit are :`);
+
+        // a single commit can have many files
+        for(const file of commitData.files){
+            console.log(`Files is : ${file.path}`);
+
+            // in the index array we pushed file path and file hash
+            const fileContent = await this.getFileContent(file.hash);
+            console.log(fileContent);
+
+            /*
+            New commit has this file and we printed the content of this file. 
+            Now we will check if the parent commit is also having this file. 
+            If yes then this means that the content of this file has got changed. 
+            */
+
+
+            // now let us see what was present inside this file in the parent commit 
+            if(commitData.parent){
+                // to get parentCommit data pass the parent hash = commitData.parent
+                const parentCommitData = JSON.parse(await this.getCommitData(commitData.parent));
+                const parentFileContent = await this.getParentFileContent(parentCommitData , file.path);
+
+                // now use the chalk and see the difference between fileContent and parentFileContent
+                // to do this we will use the npm diff package 
+                 if(parentFileContent !== undefined){
+                    console.log('\nDiff : ');
+                    const diff = diffLines(parentFileContent , fileContent);
+                   // console.log(diff);
+
+                    diff.forEach(part =>{
+                        if(part.added){
+                            process.stdout.write(chalk.green(part.value));
+                        }else if(part.removed){
+                            process.stdout.write(chalk.red(part.value));
+                        }else{
+                            process.stdout.write(chalk.grey(part.value));
+
+                        }
+                    });
+                    console.log(); // new line
+
+                 }
+                 else {
+                    console.log(`New file in this commit `);
+                 }
+
+                }
+                else{
+                    console.log(`First Commit`);
+                }
+
+            }
+        }
+
+    
+
+    async getParentFileContent(parentCommitData , filePath){
+        const parentFile = parentCommitData.files.find(file => file.path === filePath) 
+        // if that file is present in the parentCommit 
+        // which means same file is in parentCommit and the new Commit also
+        // which indicates that the content of this file has got changed 
+         if(parentFile){
+            return await this.getFileContent(parentFile.hash);
+         }
+    }
+   
+  
+    async getCommitData(fileHash){
+        const commitPath = path.join(this.objectPath , fileHash);
+        try {
+            return await fs.readFile(commitPath , {encoding:'utf-8'});
+        } catch (error) {
+            console.log(`Failed to read the commit data`, error);
+            return null;
+        }
+    }
+
+    async getFileContent(fileHash){
+        const filePath = path.join(this.objectPath,fileHash);
+        return fs.readFile(filePath , {encoding:'utf8'});
+    }
+
 }
 
 
 (async () =>{
     const verx = new Verx();
      await verx.init(); 
-    await verx.add('sample.txt');
-    await verx.commit(`Third commit`);
+    //  await verx.add('sample.txt');
+    //  await verx.add('sample2.txt');
+    //  await verx.add('sample3.txt');
+    //  await verx.commit(`Fifth commit`);
+    //  await verx.log();
 
-    await verx.log();
-})() ; 
+   await verx.showCommitDiff('1dbf9d02db829a577ef19ef146f28b5bf1b59733');
+})() ;
